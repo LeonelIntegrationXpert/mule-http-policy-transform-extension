@@ -155,11 +155,11 @@ Diferente de transformações em flows, aplicar a lógica na camada de policy ga
       │ Request Handlers   │            │ Response Handlers      │      │ Requester Handler        │
       │ (Policy/Listener)  │            │ (Policy/Listener)      │      │ (HTTP Requester)         │
       └──┬─────────────────┘            └───────────────┬────────┘      └─────────┬────────────────┘
-         │ factory()                                     │ factory()               │ factory()
-         ▼                                               ▼                        ▼
+         │ factory()                                    │ factory()               │ factory()
+         ▼                                              ▼                         ▼
 ┌───────────────────────┐                     ┌────────────────────┐   ┌────────────────────────────────┐
-│  *DefaultFactory      │                     │ *ResponseFactory    │   │ HttpRequesterRequestAttributes │
-│  *ReflectiveFactory   │                     │ (default/reflect)   │   │ Handler                        │
+│  *DefaultFactory      │                     │ *ResponseFactory   │   │ HttpRequesterRequestAttributes │
+│  *ReflectiveFactory   │                     │ (default/reflect)  │   │ Handler                        │
 └───────────────────────┘                     └────────────────────┘   └────────────────────────────────┘
 ```
 
@@ -282,17 +282,11 @@ Padrão **Conventional Commits**. Issues e melhorias são bem-vindas!
 
 ---
 
-## 📄 Licença <a id="licença"></a>
+## 👨‍💼 Desenvolvedor Responsável
 
-**MIT** – veja `LICENSE`.
-
----
-
-## 👨‍💼 Contato <a id="contato"></a>
-
-**Leonel Dorneles Porto**
-[leoneldornelesporto@outlook.com.br](mailto:leoneldornelesporto@outlook.com.br)
-Accenture / Telefônica Vivo
+**Autor:** Leonel Dorneles Porto  
+**Email:** [leoneldornelesporto@outlook.com.br](mailto:leoneldornelesporto@outlook.com.br)  
+**Organização:** Accenture
 
 ---
 

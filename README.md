@@ -15,7 +15,6 @@
 ---
 
 ## 📑 Sumário
-
 * [Visão Geral](#visão-geral)  
 * [Motivação](#motivação)  
 * [Funcionalidades](#funcionalidades)  
@@ -26,6 +25,7 @@
 * [Exemplos de Uso](#exemplos)  
 * [Instalação & Build](#instalação)  
 * [Publicação no Exchange](#publicação)  
+* [Integração com Extensão de Atributos](#integração)  
 * [FAQ](#faq)  
 * [Roadmap](#roadmap)  
 * [Troubleshooting](#troubleshooting)  
@@ -44,30 +44,28 @@ Diferente de transformações em flows, aplicar a lógica na camada de policy ga
 
 ## 💡 Motivação <a id="motivação"></a>
 
-| Cenário | Descrição |
-|---------|-----------|
-| Multi-IdP / Zero-Trust | Políticas podem exigir cabeçalhos especiais para escolher o JWKS ou IdP corretos antes de validar o JWT. |
-| Observabilidade | Adicionar _trace headers_ (`X-Correlation-Id`) em todas as requisições/respostas na borda do gateway. |
-| Segurança | Remover `Server`, `X-Powered-By` ou outros cabeçalhos de fingerprinting antes da resposta deixar a nuvem. |
-| LGPD / PCI | Mascarar dados sensíveis em cabeçalhos antes de armazenar em logs. |
-| Roteamento Dinâmico | Redirecionar chamadas internas de acordo com path, método ou query param capturados. |
+| Cenário                    | Descrição                                                                                                                                      |
+|----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
+| Multi-IdP / Zero-Trust     | Políticas podem exigir cabeçalhos especiais para escolher o JWKS ou IdP corretos antes de validar o JWT.                                       |
+| Observabilidade            | Adicionar _trace headers_ (`X-Correlation-Id`) em todas as requisições/respostas na borda do gateway.                                         |
+| Segurança                  | Remover `Server`, `X-Powered-By` ou outros cabeçalhos de fingerprinting antes da resposta deixar a nuvem.                                     |
+| LGPD / PCI                 | Mascarar dados sensíveis em cabeçalhos antes de armazenar em logs.                                                                            |
+| Roteamento Dinâmico        | Redirecionar chamadas internas de acordo com path, método ou query param capturados.                                                          |
 
 ---
 
 ## 🚀 Funcionalidades <a id="funcionalidades"></a>
 
-* **Operação 1 – `get-request-attributes`**  
-  Devolve um wrapper rico com headers, queryParams, pathParams e campos técnicos.
-* **Operação 2 – `transform-request`**  
-  Permite *add/replace/remove* cabeçalhos **antes** da API.
-* **Operação 3 – `transform-response`**  
-  Permite *add/replace/remove* cabeçalhos **antes** de retornar ao consumidor.
-* **Handler Selector Automático**  
-  Reconhece se está executando em Listener, Requester ou Policy e escolhe o handler ideal.
-* **Limite de Headers**  
-  `LimitedHttpHeadersMultimapFactory` evita overload de memória se a requisição trouxer milhares de cabeçalhos.
-* **Enum de Erros Customizados** (invalid header, missing value, limit exceeded…)
-* **Metadata Resolver** para o Design Center exibir documentação e autocomplete.
+* **Operação 1 — `get-request-attributes`**  
+  Devolve um wrapper com headers, queryParams, pathParams e campos técnicos.  
+* **Operação 2 — `transform-request`**  
+  Permite *add/replace/remove* cabeçalhos **antes** da API.  
+* **Operação 3 — `transform-response`**  
+  Permite *add/replace/remove* cabeçalhos **antes** de retornar ao consumidor.  
+* **Handler Selector Automático** — escolhe Listener, Requester ou Policy dinamicamente.  
+* **Limite de Headers** — `LimitedHttpHeadersMultimapFactory` evita overload de memória.  
+* **Enum de Erros Customizados** — `INVALID_HEADER`, `MISSING_VALUE`, `LIMIT_EXCEEDED` etc.  
+* **Metadata Resolver** para o Design Center exibir autocomplete e docs.  
 
 ---
 
@@ -93,50 +91,50 @@ Diferente de transformações em flows, aplicar a lógica na camada de policy ga
 
 ## 📂 Estrutura do Projeto <a id="estrutura-do-projeto"></a>
 
-| Arquivo / Pasta                                         | Função                                                         |         |             |
-| ------------------------------------------------------- | -------------------------------------------------------------- | ------- | ----------- |
-| `pom.xml`                                               | Build Maven (packaging `mule-extension`)                       |         |             |
-| **Extension Core**                                      |                                                                |         |             |
-| ├─ `HttpPolicyTransformExtension.java`                  | Classe anotada `@Extension` (name = "http-policy-transform")   |         |             |
-| ├─ `HttpTransformOperations.java`                       | Registra as três operações (request/response/attrs)            |         |             |
-| ├─ `Header.java`                                        | Estrutura \`\<header key="" value="" action="ADD               | REPLACE | REMOVE"/>\` |
-| **Wrapper**                                             |                                                                |         |             |
-| ├─ `HttpRequestAttributesWrapper.java`                  | POJO com `headers`, `queryParams`, etc.                        |         |             |
-| **Handler Contracts & Selector**                        |                                                                |         |             |
-| ├─ `HttpAttributesHandler.java`                         | Interface pai (`populateWrapper()`)                            |         |             |
-| ├─ `HttpAttributesHandlerSelector.java`                 | Decide implementações corretas em runtime                      |         |             |
-| **Request Handlers**                                    |                                                                |         |             |
-| ├─ `HttpRequestAttributesHandler.java`                  | Listener (entradas externas)                                   |         |             |
-| ├─ `HttpRequesterRequestAttributesHandler.java`         | Requester (chamadas internas)                                  |         |             |
-| ├─ `HttpPolicyRequestAttributesHandler.java`            | Policy (fase request)                                          |         |             |
-| **Response Handlers**                                   |                                                                |         |             |
-| ├─ `HttpResponseAttributesHandler.java`                 | Listener (respostas externas)                                  |         |             |
-| ├─ `HttpPolicyResponseAttributesHandler.java`           | Policy (fase response)                                         |         |             |
-| **Factories (Request)**                                 |                                                                |         |             |
-| ├─ `HttpPolicyRequestAttributesFactory.java`            | Interface genérica de fábrica                                  |         |             |
-| ├─ `HttpPolicyRequestAttributesDefaultFactory.java`     | Implementa via API Gateway SDK                                 |         |             |
-| ├─ `HttpPolicyRequestAttributesReflectiveFactory.java`  | Fallback usando reflection                                     |         |             |
-| **Factories (Response)**                                |                                                                |         |             |
-| ├─ `HttpPolicyResponseAttributesFactory.java`           | Interface genérica                                             |         |             |
-| ├─ `HttpPolicyResponseAttributesDefaultFactory.java`    | Implementação oficial                                          |         |             |
-| ├─ `HttpPolicyResponseAttributesReflectiveFactory.java` | Fallback refletivo                                             |         |             |
-| ├─ `HttpPolicyResponseAttributesHandlerFactory.java`    | Cria handlers de resposta prontos                              |         |             |
-| **Factories (Requester)**                               |                                                                |         |             |
-| ├─ `HttpRequesterRequestAttributesHandlerFactory.java`  | Instancia handler p/ HTTP Requester                            |         |             |
-| **Factories (Genéricas)**                               |                                                                |         |             |
-| ├─ `HttpResponseAttributesFactory.java`                 | Factory raiz para respostas                                    |         |             |
-| ├─ `HttpResponseAttributesDefaultFactory.java`          | Listener padrão                                                |         |             |
-| ├─ `HttpResponseAttributesReflectiveFactory.java`       | Listener fallback (reflection)                                 |         |             |
-| **Headers Multimap**                                    |                                                                |         |             |
-| └─ `LimitedHttpHeadersMultimapFactory.java`             | Produz `Multimap<String,String>` com limite configurável       |         |             |
-| **Reflection Utils**                                    |                                                                |         |             |
-| ├─ `FieldInspector.java`                                | Descobre campos e tipos via Reflection                         |         |             |
-| ├─ `FieldCopier.java`                                   | Copia valores field-to-field                                   |         |             |
-| └─ `CrossClassFieldCopier.java`                         | Copia entre classes diferentes                                 |         |             |
-| **Error & Metadata**                                    |                                                                |         |             |
-| ├─ `HttpPolicyTransformErrorTypes.java`                 | Enum: `INVALID_HEADER`, `MISSING_VALUE`, `LIMIT_EXCEEDED`, ... |         |             |
-| ├─ `HttpPolicyTransformErrorTypeProvider.java`          | Provider registrado no SDK                                     |         |             |
-| └─ `HttpPolicyTransformMetadataResolver.java`           | Envia metadados ao Design Center                               |         |             |
+| Arquivo / Pasta                                      | Função                                                    |
+| ---------------------------------------------------- | --------------------------------------------------------- |
+| **`pom.xml`**                                        | Build Maven (packaging `mule-extension`)                  |
+| **Extension Core**                                   |                                                           |
+| `HttpPolicyTransformExtension.java`                  | Classe `@Extension` principal                             |
+| `HttpTransformOperations.java`                       | Implementa operações                                      |
+| `Header.java`                                        | `<header key="" value="" action="ADD\|REPLACE\|REMOVE"/>` |
+| **Wrapper**                                          |                                                           |
+| `HttpRequestAttributesWrapper.java`                  | POJO de atributos HTTP                                    |
+| **Selector & Contracts**                             |                                                           |
+| `HttpAttributesHandlerSelector.java`                 | Decide handler ideal                                      |
+| `HttpAttributesHandler.java`                         | Interface geral                                           |
+| **Request Handlers**                                 |                                                           |
+| `HttpRequestAttributesHandler.java`                  | Listener externo                                          |
+| `HttpRequesterRequestAttributesHandler.java`         | HTTP Requester                                            |
+| `HttpPolicyRequestAttributesHandler.java`            | Policy (request)                                          |
+| **Response Handlers**                                |                                                           |
+| `HttpResponseAttributesHandler.java`                 | Listener externo                                          |
+| `HttpPolicyResponseAttributesHandler.java`           | Policy (response)                                         |
+| **Factories (Request)**                              |                                                           |
+| `HttpPolicyRequestAttributesFactory.java`            | Interface                                                 |
+| `HttpPolicyRequestAttributesDefaultFactory.java`     | Default                                                   |
+| `HttpPolicyRequestAttributesReflectiveFactory.java`  | Reflection                                                |
+| **Factories (Response)**                             |                                                           |
+| `HttpPolicyResponseAttributesFactory.java`           | Interface                                                 |
+| `HttpPolicyResponseAttributesDefaultFactory.java`    | Default                                                   |
+| `HttpPolicyResponseAttributesReflectiveFactory.java` | Reflection                                                |
+| `HttpPolicyResponseAttributesHandlerFactory.java`    | Cria handlers                                             |
+| **Factories (Requester)**                            |                                                           |
+| `HttpRequesterRequestAttributesHandlerFactory.java`  | Factory Requester                                         |
+| **Factories (Genéricas)**                            |                                                           |
+| `HttpResponseAttributesFactory.java`                 | Raiz resposta                                             |
+| `HttpResponseAttributesDefaultFactory.java`          | Default listener                                          |
+| `HttpResponseAttributesReflectiveFactory.java`       | Reflection listener                                       |
+| **Headers Multimap**                                 |                                                           |
+| `LimitedHttpHeadersMultimapFactory.java`             | Multimap com limite                                       |
+| **Reflection Utils**                                 |                                                           |
+| `FieldInspector.java`                                | Descobre campos                                           |
+| `FieldCopier.java`                                   | Copia fields                                              |
+| `CrossClassFieldCopier.java`                         | Copia inter-classes                                       |
+| **Erro & Metadata**                                  |                                                           |
+| `HttpPolicyTransformErrorTypes.java`                 | Enum de erros                                             |
+| `HttpPolicyTransformErrorTypeProvider.java`          | Provider de erros                                         |
+| `HttpPolicyTransformMetadataResolver.java`           | Metadados p/ DC                                           |
 
 ---
 
@@ -145,26 +143,33 @@ Diferente de transformações em flows, aplicar a lógica na camada de policy ga
 ```text
                                     ┌────────────────────────────────────────┐
                                     │  HttpAttributesHandlerSelector         │
-                                    │  • contextType = LISTENER | REQUESTER  │
+                                    │  • context = LISTENER | REQUESTER      │
                                     │  • execution = POLICY | FLOW           │
                                     └──────────────┬─────────────────────────┘
-                                                   │ decide()
-                 ┌─────────────────────────────────┼─────────────────────────────────┐
-                 ▼                                 ▼                                 ▼
-      ┌────────────────────┐            ┌────────────────────────┐      ┌──────────────────────────┐
-      │ Request Handlers   │            │ Response Handlers      │      │ Requester Handler        │
-      │ (Policy/Listener)  │            │ (Policy/Listener)      │      │ (HTTP Requester)         │
-      └──┬─────────────────┘            └───────────────┬────────┘      └─────────┬────────────────┘
-         │ factory()                                    │ factory()               │ factory()
-         ▼                                              ▼                         ▼
-┌───────────────────────┐                     ┌────────────────────┐   ┌────────────────────────────────┐
-│  *DefaultFactory      │                     │ *ResponseFactory   │   │ HttpRequesterRequestAttributes │
-│  *ReflectiveFactory   │                     │ (default/reflect)  │   │ Handler                        │
-└───────────────────────┘                     └────────────────────┘   └────────────────────────────────┘
+                                                   │
+      ┌────────────────────────────────────────────┴─────────────────────────────────────────────┐
+      ▼                                                                                          ▼
+┌────────────────────┐                                                             ┌──────────────────────────┐
+│ Request Handlers   │                                                             │ Requester Handler        │
+│ (Policy / Listener)│                                                             │ (HTTP Requester)         │
+└──┬─────────────────┘                                                             └─────────┬────────────────┘
+   │ factory()                                                                               │ factory()
+   ▼                                                                                         ▼
+┌───────────────────────┐                                                         ┌────────────────────────────────┐
+│ *Default / Reflective │                                                         │ HttpRequesterRequestAttributes │
+└───────────────────────┘                                                         │ Handler                        │
+                                                                                  └────────────────────────────────┘
+       ▲                                                                                        ▲
+       │                                                                                        │
+       │                       ┌────────────────────────┐                                       │
+       └──────────────────────►│  Response Handlers     │◄──────────────────────────────────────┘
+                               └──────────────┬────────┘
+                                              │ factory()
+                                              ▼
+                                 ┌───────────────────────┐
+                                 │ *Default / Reflective │
+                                 └───────────────────────┘
 ```
-
-*Factories* criam *handlers* que, por sua vez, **popularão o wrapper** usando `FieldInspector` ➜ `FieldCopier`.
-O **Multimap Factory** é usado dentro dos handlers para representar headers com limite de tamanho.
 
 ---
 
@@ -176,44 +181,40 @@ Retorna em `target` o objeto `HttpRequestAttributesWrapper`.
 
 ### 2 ▪ `transform-request`
 
-Aceita lista `<http-transform:header .../>` com atributos:
-
-| Atributo | Obrig. | Descrição                           | Notas                               |
-| -------- | ------ | ----------------------------------- | ----------------------------------- |
-| `key`    | ✔      | Nome do header                      | Case-insensitive                    |
-| `value`  | ✖      | Novo valor                          | Ignorado se `action="REMOVE"`       |
-| `action` | ✖      | `ADD`(default)\|`REPLACE`\|`REMOVE` | `REPLACE` troca primeira ocorrência |
+| Atributo | Obrigatório | Descrição                                  | Observações                         |
+| -------- | ----------- | ------------------------------------------ | ----------------------------------- |
+| `key`    | ✔           | Nome do header                             | Case-insensitive                    |
+| `value`  | ✖           | Novo valor                                 | Ignorado se `action="REMOVE"`       |
+| `action` | ✖           | `ADD`\|`REPLACE`\|`REMOVE` (default `ADD`) | `REPLACE` troca primeira ocorrência |
 
 ### 3 ▪ `transform-response`
 
-Mesmos atributos, mas aplica‐se à resposta.
+Mesmos atributos, aplicados à resposta.
 
 ---
 
 ## 🧪 Exemplos de Uso <a id="exemplos"></a>
 
-### Exemplo Completo de Policy
-
 ```xml
 <configuration>
-    <http-attrs:get-request-attributes target="reqAttrs"/>
-    <!-- Add Forwarded Tenant Header -->
-    <http-transform:transform-request>
-        <http-transform:headers>
-            <http-transform:header key="X-Tenant" value="#[vars.reqAttrs.headers['tenant']]"/>
-            <http-transform:header key="X-Env" value="HML"/>
-        </http-transform:headers>
-    </http-transform:transform-request>
+  <http-attrs:get-request-attributes target="reqAttrs"/>
 
-    <!-- …chama API… -->
+  <http-transform:transform-request>
+    <http-transform:headers>
+      <http-transform:header key="X-Tenant" value="#[vars.reqAttrs.headers['tenant']]"/>
+      <http-transform:header key="X-Env" value="HML"/>
+    </http-transform:headers>
+  </http-transform:transform-request>
 
-    <http-transform:transform-response>
-        <http-transform:headers>
-            <http-transform:header key="Server" action="REMOVE"/>
-            <http-transform:header key="X-Correlation-Id"
-                                    value="#[vars.reqAttrs.headers.correlation-id default uuid()]"/>
-        </http-transform:headers>
-    </http-transform:transform-response>
+  <!-- … chamada da API … -->
+
+  <http-transform:transform-response>
+    <http-transform:headers>
+      <http-transform:header key="Server" action="REMOVE"/>
+      <http-transform:header key="X-Correlation-Id"
+                              value="#[vars.reqAttrs.headers.correlation-id default uuid()]"/>
+    </http-transform:headers>
+  </http-transform:transform-response>
 </configuration>
 ```
 
@@ -222,70 +223,83 @@ Mesmos atributos, mas aplica‐se à resposta.
 ## 🏗️ Instalação & Build <a id="instalação"></a>
 
 ```bash
-git clone https://github.com/seu-org/mule-http-policy-transform-extension.git
+git clone https://github.com/<sua-org>/mule-http-policy-transform-extension.git
 cd mule-http-policy-transform-extension
 mvn clean install -DskipTests
 ```
-
-**Resultado:**
-`target/mule-http-policy-transform-extension-<version>-mule-plugin.jar`
 
 ---
 
 ## ☁️ Publicação no Exchange <a id="publicação"></a>
 
 ```bash
-# settings.xml com Connected App
 mvn clean deploy -s .maven/settings.xml
 ```
 
-A asset aparecerá em **Exchange → Private Assets** pronta para aplicar em políticas.
+---
+
+## 🔗 Integração com a Extensão de Atributos HTTP <a id="integração"></a>
+
+Esta extensão **depende** de:
+[`api-gateway-http-policy-attributes-extension`](https://github.com/LeonelIntegrationXpert/api-gateway-http-policy-attributes-extension)
+
+> 📦 **Necessário** publicar esse asset no Exchange **da sua organização**.
+
+```xml
+<dependency>
+  <groupId>${orgId}</groupId> <!-- Substitua ${orgId} pelo GUID da sua organização -->
+  <artifactId>api-gateway-http-policy-attributes-extension</artifactId>
+  <version>1.0.0</version>
+  <classifier>mule-plugin</classifier>
+</dependency>
+```
+
+*Se o `groupId` não corresponder ao GUID da sua organização no Anypoint Platform,
+o Maven não localizará a dependência no Exchange e a aplicação falhará.*
 
 ---
 
 ## ❓ FAQ <a id="faq"></a>
 
-| Pergunta                                               | Resposta                                                                          |
-| ------------------------------------------------------ | --------------------------------------------------------------------------------- |
-| Posso aplicar múltiplas operações `transform-request`? | Sim, elas serão avaliadas na ordem em que aparecem.                               |
-| O limite de headers pode ser alterado?                 | Injete a propriedade `http.headers.limit` no `mule-artifact.json`.                |
-| `action="REMOVE"` sem value gera erro?                 | Somente se a policy marcar header como obrigatório; caso contrário apenas remove. |
+| Pergunta                                         | Resposta                                             |
+| ------------------------------------------------ | ---------------------------------------------------- |
+| Posso definir várias etapas `transform-request`? | Sim, são executadas na ordem declarada.              |
+| Como alterar o limite de headers?                | Defina `http.headers.limit` no `mule-artifact.json`. |
+| `REMOVE` sem `value` gera erro?                  | Apenas se a policy marcar o header como obrigatório. |
 
 ---
 
 ## 🗺️ Roadmap <a id="roadmap"></a>
 
-* **1.1.0** → Suporte a cookies e query‐params transform
-* **1.2.0** → Unit tests MUnit + Jacoco cobertura
-* **2.0.0** → Compatibilidade Mule 5 (quando GA)
+* **1.1.0** – Suporte a cookies & query-params
+* **1.2.0** – Testes MUnit + cobertura Jacoco
+* **2.0.0** – Compatível Mule 5 (GA)
 
 ---
 
 ## 🐞 Troubleshooting <a id="troubleshooting"></a>
 
-| Sintoma                               | Diagnóstico                                 | Solução                                                  |
-| ------------------------------------- | ------------------------------------------- | -------------------------------------------------------- |
-| Policy falha com `LIMIT_EXCEEDED`     | Request possui cabeçalhos > limite          | Aumente propriedade `http.headers.limit` ou filtre antes |
-| Headers não aparecem na resposta      | `transform-response` aplicado antes de erro | Use `error-handler` para repetir header em falhas        |
-| Metadata não carrega no Design Center | Falta do resolver no classpath              | Rebuild e cheque `HttpPolicyTransformMetadataResolver`   |
+| Erro / Sintoma                          | Diagnóstico                                 | Correção                                         |
+| --------------------------------------- | ------------------------------------------- | ------------------------------------------------ |
+| `LIMIT_EXCEEDED`                        | Request contém cabeçalhos demais            | Aumente `http.headers.limit` ou filtre headers.  |
+| Headers faltando na resposta            | `transform-response` executou antes de erro | Copie headers no `error-handler`.                |
+| Metadados não carregam no Design Center | Faltou resolver                             | Verifique `HttpPolicyTransformMetadataResolver`. |
 
 ---
 
 ## 🤝 Contribuindo <a id="contribuindo"></a>
 
 1. Fork → `git checkout -b feature/NOME`
-2. `mvn clean test` (MUnit)
-3. `git commit -m "feat: descrição"`
-4. Pull Request
-
-Padrão **Conventional Commits**. Issues e melhorias são bem-vindas!
+2. `mvn clean test`
+3. `git commit -m "feat: sua descrição"`
+4. Abra Pull Request (padronize **Conventional Commits**).
 
 ---
 
-## 👨‍💼 Desenvolvedor Responsável
+## 👨‍💼 Desenvolvedor Responsável <a id="contato"></a>
 
-**Autor:** Leonel Dorneles Porto  
-**Email:** [leoneldornelesporto@outlook.com.br](mailto:leoneldornelesporto@outlook.com.br)  
+**Autor:** Leonel Dorneles Porto
+**Email:** [leoneldornelesporto@outlook.com.br](mailto:leoneldornelesporto@outlook.com.br)
 **Organização:** Accenture
 
 ---
